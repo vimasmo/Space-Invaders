@@ -11,3 +11,4 @@ char player='A';
 char laser='*';
 char inimigo
 }
+a
