@@ -2,3 +2,12 @@
 #include <stdlib.h>
 #include <conio.h>
 #include <windows.h>
+main(){
+//variaveis
+int eixox=23,eixoy=40; //tamanho da tela
+char tela[eixox,eixoy] //variavel da tela
+struct{
+char player='A';
+char laser='*';
+char inimigo
+}
