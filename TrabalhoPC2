@@ -1,13 +1,346 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <conio.h>
-#include <windows.h>
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+
+
+void getch(void){
+system("read b");
+return(0);
+}
+int kbhit(void)
+{
+  struct termios oldt, newt;
+  int ch;
+  int oldf;
+
+  tcgetattr(STDIN_FILENO, &oldt);
+  newt = oldt;
+  newt.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+  ch = getchar();
+
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+  fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+  if(ch != EOF)
+  {
+    ungetc(ch, stdin);
+    return 1;
+  }
+
+  return 0;
+}
+int logo(){
+sleep(500);
+printf("                           _                     _                \n");
+sleep(500);
+printf("                          (_)                   | |               \n");
+sleep(500);
+printf("  ___ _ __   __ _  ___ ___ _ _ ____   ____ _  __| | ___ _ __ ___  \n");
+sleep(500);
+printf(" / __| '_ \\ / _` |/ __/ _ \\ | '_ \\ \\ / / _` |/ _` |/ _ \\ '__/ __| \n");
+sleep(500);
+printf(" \\__ \\ |_) | (_| | (_|  __/ | | | \\ V / (_| | (_| |  __/ |  \\__ \\ \n");
+sleep(500);
+printf(" |___/ .__/ \\__,_|\\___\\___|_|_| |_|\\_/ \\__,_|\\__,_|\\___|_|  |___/ \n");
+sleep(500);
+printf("     | |                                                          \n");
+sleep(500);
+printf("     |_|                                                          \n");
+sleep(500);
+printf("     A= Jogador                                                       \n");
+sleep(500);
+printf("     @= Inimigo Protegido                                                 \n");
+sleep(500);
+printf("     V= Inimigo                                                        \n");
+sleep(500);
+printf("     Use as W,A,S,D para Movimentar e barra para atirar                      \n");
+sleep(500);
+printf("\n\n\n                         PRESS START");
+return(0);
+}
+char inimigos(char inimigo,char escudo,int eixox,int eixoy,char tela[eixox][eixoy]){
+ int totalinimigo = 0,x=0,y=0;
+    for (x = 0; x < eixox; x ++) {
+        for (y = 0; y < eixoy; y ++) {
+            if ((y+1) % 2 == 0 && y < 7 && x > 4&& x < eixox - 5 && x % 2 ==0) {
+                tela[y][x] = inimigo;
+                totalinimigo ++;
+            }
+            else if ((y+1) % 2 == 0 && y >= 7 && y < 9 && x > 4&& x < eixox - 5 && x % 2 ==0){
+                tela[y][x] = escudo;
+                totalinimigo = totalinimigo + 2;
+            }
+            else {
+                tela[y][x] = ' ';
+            }
+        }
+    }
+	return(0);}
+
 main(){
 //variaveis
 int eixox=23,eixoy=40; //tamanho da tela
-char tela[eixox,eixoy] //variavel da tela
-struct{
-char player='A';
-char laser='*';
-char inimigo
+char tela[eixox][eixoy]; //variavel da tela
+struct {
+char player;
+char laser;
+char inimigo;
+char escudo ;
+char laserinimigo;
+}simbolos;
+simbolos.escudo='@';
+simbolos.laserinimigo='U';
+simbolos.inimigo='V';
+simbolos.laser='*';
+simbolos.player='A';
+ int sizey = 23;
+    int sizex = 40;
+    int x, y, yi;
+    char world[sizey][sizex];
+    char player = 'A';
+    char playerLaser = '*';
+    char enemy = 'V';
+    char enemyShielded = '@';
+    char enemyLaser = 'U';
+    char explosion = 'X';
+    int score = 0;
+    int victory = 1;
+    int laserReady = 1;
+    int enemyReady = 0;
+
+logo();
+system("cls");
+ int totalEnemies = 0;
+    for (x = 0; x < sizex; x ++) {
+        for (y = 0; y < sizey; y ++) {
+            if ((y+1) % 2 == 0 && y < 7 && x > 4
+            && x < sizex - 5 && x % 2 ==0) {
+                world[y][x] = enemy;
+                totalEnemies ++;
+            }
+            else if ((y+1) % 2 == 0 && y >= 7 && y < 9 && x > 4
+            && x < sizex - 5 && x % 2 ==0){
+                world[y][x] = enemyShielded;
+                totalEnemies = totalEnemies + 2;
+            }
+            else {
+                world[y][x] = ' ';
+            }
+        }
+    }
+    world[sizey - 1][sizex / 2] = player;
+    int i = 1;
+    char direction = 'l';
+    char keyPress;
+    int currentEnemies = totalEnemies;
+    while(currentEnemies > 0 && victory) {
+        int drop = 0;
+        int enemySpeed = 1 + 10 * currentEnemies / totalEnemies;
+        laserReady ++;
+
+        system("cls");
+        printf("     SCORE:    %d", score);
+        printf("\n");
+            for (y = 0; y < sizey; y ++) {
+            printf("|");
+                for (x = 0; x < sizex; x ++) {
+                    printf("%c",world[y][x]);
+                }
+            printf("|");
+            printf("\n");
+            }
+
+        for (x = 0; x < sizex; x ++) {
+            for (y = sizey-1; y >= 0; y --) {
+                if (i%2 == 0 && world[y][x] == enemyLaser
+                && (world[y+1][x] != enemy & world[y+1][x] != enemyShielded)){
+                world[y+1][x] = enemyLaser;
+                world[y][x] = ' ';
+                }
+                else if (i%2 == 0 && world[y][x] == enemyLaser
+                && (world[y+1][x] == enemy | world[y+1][x] == enemyShielded)){
+                    world[y][x] = ' ';
+                }
+            }
+        }
+        for (x = 0; x < sizex; x ++) {
+            for (y = 0; y < sizey; y ++) {
+                if ((i % 5) == 0 && (world[y][x] == enemyShielded
+                | world[y][x] == enemy) && (rand() % 15) > 13
+                && world[y+1][x] != playerLaser) {
+                    for (yi = y+1; yi < sizey; yi ++) {
+                        if (world[yi][x] == enemy
+                        | world[yi][x] == enemyShielded) {
+                            enemyReady = 0;
+                            break;
+                        }
+                        enemyReady = 1;
+                    }
+                    if (enemyReady) {
+                        world[y+1][x] = enemyLaser;
+                    }
+                }
+                if (world[y][x] == playerLaser && world[y-1][x] == enemy) {
+                    world[y][x] = ' ';
+                    world[y-1][x] = explosion;
+                    currentEnemies --;
+                    score = score + 50;
+                }
+                else if (world[y][x] == playerLaser
+                && world[y-1][x] == enemyShielded) {
+                    world[y][x] = ' ';
+                    world[y-1][x] = enemy;
+                    currentEnemies --;
+                    score = score + 50;
+                }
+                else if (world[y][x] == playerLaser
+                && world[y-1][x] == enemyLaser) {
+                    world[y][x] = ' ';
+                }
+                else if (world[y][x] == explosion) {
+                    world[y][x] = ' ';
+                }
+                else if ((i+1) % 2 == 0 && world[y][x] == enemyLaser
+                && world[y+1][x] == player) {
+                    world[y+1][x] = explosion;
+                    world[y][x] = ' ';
+                    victory = 0;
+                }
+                else if (world[y][x] == playerLaser
+                && world[y-1][x] != enemyLaser) {
+                        world[y][x] = ' ';
+                        world[y-1][x] = playerLaser;
+                }
+            }
+        }
+
+        for (y = 0; y < sizey; y ++) {
+            if (world[y][0] == enemy) {
+                direction = 'r';
+                drop = 1;
+                break;
+            }
+            if (world[y][sizex-1] == enemy){
+                direction = 'l';
+                drop = 1;
+                break;
+            }
+        }
+
+        if (i % enemySpeed == 0) {
+            if (direction == 'l') {
+                for (x = 0; x < sizex - 1; x ++) {
+                    for (y = 0; y < sizey; y ++) {
+                        if (drop && (world[y-1][x+1] == enemy
+                            || world[y-1][x+1] == enemyShielded)){
+                            world[y][x] = world[y-1][x+1];
+                            world[y-1][x+1] = ' ';
+                        }
+                        else if (!drop && (world[y][x+1] == enemy
+                            || world[y][x+1] == enemyShielded)) {
+                            world[y][x] = world[y][x+1];
+                            world[y][x+1] = ' ';
+                        }
+                    }
+                }
+            }
+            else {
+                for (x = sizex; x > 0; x --) {
+                    for (y = 0; y < sizey; y ++) {
+                        if (drop && (world[y-1][x-1] == enemy
+                            || world[y-1][x-1] == enemyShielded)) {
+                            world[y][x] = world[y-1][x-1];
+                            world[y-1][x-1] = ' ';
+                        }
+                        else if (!drop && (world[y][x-1] == enemy
+                            || world[y][x-1] == enemyShielded)) {
+                            world[y][x] = world[y][x-1];
+                            world[y][x-1] = ' ';
+                        }
+                    }
+                }
+            }
+            for (x = 0; x < sizex; x ++) {
+                if (world[sizey - 1][x] == enemy) {
+                    victory = 0;
+                }
+            }
+        }
+
+        if(kbhit()){
+            keyPress = system("read b");
+        }
+        else {
+            keyPress = ' ';
+        }
+        if (keyPress == 'a') {
+            for (x = 0; x < sizex; x = x+1) {
+                if ( world[sizey-1][x+1] == player) {
+                    world[sizey-1][x] = player;
+                    world[sizey-1][x+1] = ' ';
+                }
+            }
+        }
+
+        if (keyPress == 'd') {
+            for (x = sizex - 1; x > 0; x = x-1) {
+                if ( world[sizey-1][x-1] == player) {
+                    world[sizey-1][x] = player;
+                    world[sizey-1][x-1] = ' ';
+                }
+            }
+        }
+        if (keyPress == 'm' && laserReady > 2) {
+            for (x = 0; x < sizex; x = x+1) {
+                if ( world[sizey-1][x] == player) {
+                    world[sizey - 2][x] = playerLaser;
+                    laserReady = 0;
+                }
+            }
+        }
+        i ++;
+        sleep(50);
+    }
+    system("cls");
+        printf("     SCORE:    %d", score);
+        printf("\n");
+            for (y = 0; y < sizey; y ++) {
+            printf("|");
+                for (x = 0; x < sizex; x ++) {
+                    printf("%c",world[y][x]);
+                }
+            printf("|");
+            printf("\n");
+            }
+    sleep(1000);
+    system("cls");
+    if (victory != 0) {
+        printf("\n \n \n \n \n \n               CONGRATULATIONS! \n \n \n \n \n");
+        sleep(1000);
+        printf("\n \n               Score: %d", score);
+        sleep(1000);
+        int bonus = totalEnemies*20 - i;
+        printf("\n \n               Bonus: %d", bonus);
+        sleep(1000);
+        printf("\n \n               Total Score: %d", score + bonus);
+        printf("\n \n \n \n               Well done");
+        sleep(1000);
+        printf(", Hero.");
+        sleep(1000);
+    }
+    else {
+        printf("\n \n \n \n \n \n               You have failed.");
+        sleep(1000);
+        printf("\n \n \n \n \n \n               Windows is doomed.");
+        sleep(1000);
+        printf("\n \n               Final Score: %d", score);
+    }
+return(0);
 }
